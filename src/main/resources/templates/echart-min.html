@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th = "https://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.js"></script>
+    <script src="https://cdn.bootcss.com/echarts/4.6.0/echarts.min.js"></script>
+<!--    <script src="/echarts/5.1.1/echarts.min.js"></script>-->
+<!--    <script src="/jquery/3.6.0/jquery-3.6.0.min.js"></script>-->
+    <title>Title</title>
+</head>
+<body>
+<div style="alignment: left">
+    <div id="sankeyChart_lift" class="subChart" style="height: 600px; width: 800px"></div>
+    <div id="graphChart_Main" class="mainChart" style="height: 960px; width: 1280px"></div>
+</div>
+<br />
+
+<script>
+
+    var SankeyChart_Lift = echarts.init(document.getElementById('sankeyChart_lift'));
+    var GraphChart_Main = echarts.init(document.getElementById('graphChart_Main'));
+
+    function renderColor() {
+        return "#"+(Math.random()*0xffffff<<0).toString(16);
+    }
+
+    var itemSets=[];
+    var FrequentModels=[];
+
+    var idPool=0;
+
+    //get frequent item set information
+    $.ajax({
+        url: "/data/testfp",
+        type: "GET",
+        dataType: "json",
+        success: function (data) {
+            idPool=0;
+            var items = data.itemSets;
+            var models = data.models;
+            for (var i in items) {
+                var item={};
+                item.items = items[i].items;
+                item.support = items[i].support;
+                item.id = idPool++;
+                itemSets.push(item);
+            }
+            console.log(itemSets);
+            for (var i in models) {
+               FrequentModels.push(models[i]);
+               // console.log(renderColor());
+               // if (itemSets[data[i].source] == null) {
+               //     itemSets[data[i].source] = renderColor();
+               // }
+               // if (itemSets[data[i].target] == null) {
+               //     itemSets[data[i].target] = renderColor();
+               // }
+            }
+            renderRelationshipChart();
+        }
+    })
+
+    function renderRelationshipChart() {
+
+        nodes = []
+        links = []
+
+        for (var i in itemSets) {
+            var node = {};
+            node.id = itemSets[i].id;
+            node.name = itemSets[i].items;
+            node.value = itemSets[i].support;
+            node.x = -400 + Math.random()*700;
+            node.y = -300 + Math.random()*500;
+            node.symbolSize = (100 * itemSets[i].support);
+            nodes.push(node);
+        }
+
+        for (var i in FrequentModels) {
+            var link = {};
+            for (var j in itemSets) {
+                if (FrequentModels[i].source == itemSets[j].items) {
+                    link.source = itemSets[j].id.toString();
+                }
+                if (FrequentModels[i].target == itemSets[j].items) {
+                    link.target = itemSets[j].id.toString();
+                }
+            }
+            links.push(link);
+        }
+
+        option = {
+            title: {
+              text: '关系图',
+              subtext: 'powered by echart',
+              left: '4%',
+            },
+            series: [{
+                name: 'support',
+                type: 'graph',
+                data: nodes,
+                links: links,
+                edgeSymbol: ['none', 'arrow'],
+                scaleLimit: {
+                    min: 0.4,
+                    max: 2,
+                },
+                lineStyle: {
+                    color: 'source',
+                    curveness: 0.3,
+                },
+                label: {
+                    show: true,
+                    formatter: '{b}'
+                },
+                layout: 'force',
+                force: {
+                    repulsion: 100,
+                    edgeLength: [10,100],
+                },
+                roam: true,
+            }],
+            tooltip: {
+                show: true,
+                trigger: 'item',
+                triggerOn: 'mousemove | click',
+                backgroundColor: 'rgba(210,210,210,0.7)',
+                textStyle: {
+                    color: '#000',
+                    fontStyle: 'normal',
+                }
+            },
+        }
+
+        GraphChart_Main.setOption(option);
+    }
+
+    function renderSubChart() {
+
+        var itemSetList = [];
+        var chartData = [];
+
+        for (var s in itemSets) {
+            itemSetList.push(
+                {
+                    name: s,
+                    itemStyle: {
+                        color: itemSets[s],
+                    }
+                }
+            )
+        }
+
+        for (var i = 0; i < FrequentModels.length; i++) {
+            var linkcolor = new echarts.graphic.LinearGradient(0, 0, 1, 0, [{
+                    offset: 0,
+                    color: itemSets[FrequentModels[i].source]
+                }, {
+                    offset: 1,
+                    color: itemSets[FrequentModels[i].target]
+                }]
+            )
+            chartData.push(
+                {
+                    source: FrequentModels[i].source,
+                    target: FrequentModels[i].target,
+                    value: FrequentModels[i].confidence,
+                    lineStyle: {
+                        color: linkcolor
+                    }
+                }
+            )
+        }
+
+        option = {
+            title: {
+                text: '桑基图之城市移民人口统计',
+                subtext: 'powered by echart',
+                left: '5%',
+            },
+            tooltip: {
+                trigger: 'item',
+                triggerOn: 'mousemove'
+            },
+            series: [
+                {
+                    type: 'sankey',
+                    top: 50,
+                    data: itemSetList,
+                    links: chartData,
+                    focusNodeAdjacency: 'allEdges',
+                    itemStyle: {
+                        borderWidth: 1,
+                        color: '#1b6199',
+                        borderColor: '#ffffff'
+                    },
+                    lineStyle: {
+                        curveness: 0.5,
+                        opacity: 0.5
+                    }
+                }
+            ]
+        }
+        SankeyChart_Lift.setOption(option);
+    }
+
+</script>
+
+</body>
+</html>
