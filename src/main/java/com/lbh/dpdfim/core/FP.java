@@ -5,6 +5,7 @@ import com.lbh.dpdfim.connector.PathParser;
 import com.lbh.dpdfim.ui.service.FrequentItemSetDTO;
 import com.lbh.dpdfim.ui.service.FrequentModelDTO;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -17,7 +18,12 @@ import java.net.URISyntaxException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Parallel FP-Growth Algorithm on Spark for FIM
+ * @author Banghao Li
+ */
 @Data
+@Slf4j
 public class FP {
 
     double minSupport = 0.1;
@@ -35,17 +41,17 @@ public class FP {
 
         Map<String, Object> result = new HashMap<>();
 
-        SparkConf scf = new SparkConf().setAppName("FPDemo").setMaster(PathParser.REMOTE_HADOOP_CLUSTER_MASTER)
+        SparkConf conf = new SparkConf().setAppName("FPDemo").setMaster(PathParser.REMOTE_HADOOP_CLUSTER_MASTER)
                 .setJars(new String[]{"target/dp-dfim-0.0.1.jar.original"});
-        JavaSparkContext sc = new JavaSparkContext(scf);
+        JavaSparkContext context = new JavaSparkContext(conf);
 
         FileOperator.copyFromLocal("/spark/asthma.csv", "/fq/asthma.csv");
 
         //读取本地数据集，每一行为一个项集List<>，每个项集按项分割
-        JavaRDD<List<String>> trans = sc.textFile(PathParser.generateRemotePath("/fq/asthma.csv"))
+        JavaRDD<List<String>> trans = context.textFile(PathParser.generateRemotePath("/fq/asthma.csv"))
                 .map(s -> Arrays.stream(s.replace(","," ").trim().split(" ")).distinct().collect(Collectors.toList()));
         long counts = trans.count();
-        System.out.println("记录条数：" + counts);
+        log.info("记录条数：" + counts);
 
         FPGrowth fpGrowth = new FPGrowth().setMinSupport(this.getMinSupport()).setNumPartitions(this.getNumPartition());
         FPGrowthModel<String> model = fpGrowth.run(trans);
@@ -58,7 +64,7 @@ public class FP {
 
         for (FPGrowth.FreqItemset<String> itemset :
                 model.freqItemsets().toJavaRDD().collect()) {
-            System.out.println(itemset.javaItems().toString() + itemset.freq());
+            log.debug(itemset.javaItems().toString() + itemset.freq());
             FrequentItemSetDTO frequentItemSetDTO = new FrequentItemSetDTO();
             frequentItemSetDTO.setItems(itemset.javaItems().toString());
             frequentItemSetDTO.setSupport(itemset.freq() * 1.0 / counts);
@@ -67,7 +73,7 @@ public class FP {
 
         for (AssociationRules.Rule<String> rule :
                 model.generateAssociationRules(minConfidence).toJavaRDD().collect()) {
-            System.out.println(rule.javaAntecedent() + "=>" + rule.javaConsequent() + ", " + rule.confidence());
+            log.debug(rule.javaAntecedent() + "=>" + rule.javaConsequent() + ", " + rule.confidence());
             FrequentModelDTO frequentModelDTO = new FrequentModelDTO();
             frequentModelDTO.setSource(rule.javaAntecedent().toString());
             frequentModelDTO.setTarget(rule.javaConsequent().toString());
@@ -76,7 +82,7 @@ public class FP {
             models.add(frequentModelDTO);
         }
 
-        sc.close();
+        context.close();
 
         result.put("itemSets", itemSets);
         result.put("models", models);

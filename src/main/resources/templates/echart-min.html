@@ -2,65 +2,120 @@
 <html lang="en" xmlns:th = "https://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.js"></script>
-    <script src="https://cdn.bootcss.com/echarts/4.6.0/echarts.min.js"></script>
+    <script src="https://cdn.bootcss.com/jquery/3.6.0/jquery.js"></script>
+    <script src="https://cdn.bootcss.com/echarts/5.0.0/echarts.min.js"></script>
 <!--    <script src="/echarts/5.1.1/echarts.min.js"></script>-->
 <!--    <script src="/jquery/3.6.0/jquery-3.6.0.min.js"></script>-->
     <title>Title</title>
 </head>
 <body>
-<div style="alignment: left">
-    <div id="sankeyChart_lift" class="subChart" style="height: 600px; width: 800px"></div>
-    <div id="graphChart_Main" class="mainChart" style="height: 960px; width: 1280px"></div>
-</div>
-<br />
-
+    <div style="height: 960px; width: 100%" >
+        <div id="graphChart_main" class="mainChart" style="height: 100%; width: 80%; float: left"></div>
+        <div id="paramSet_graph" class="paramSet_graph" style="height: 100%; width: 20%; float: left">
+            Min Support:<br/>
+            <input id="minSupport"><br/>
+            Min Confidence:<br/>
+            <input id="minConfidence"><br/>
+            <button id="btn_data_refresh">Refresh</a></button>
+        </div>
+    </div>
+    <div style="height: 200px; width: 100%"></div>
+    <div style="height: 600px; width: 100%">
+        <div id="barChart_detail_model" class="subChart" style="width: 50%; height: 100%; margin: 2px"></div>
+    </div>
+    <div style="height: 600px; width: 100%" >
+        <div id="sankeyChart_lift" class="subChart" style="height: 600px; width: 800px"></div>
+    </div>
 <script>
 
-    var SankeyChart_Lift = echarts.init(document.getElementById('sankeyChart_lift'));
-    var GraphChart_Main = echarts.init(document.getElementById('graphChart_Main'));
+    var GraphChart_Main = echarts.init(document.getElementById('graphChart_main'));
+    var BarChart_Details_Model = echarts.init(document.getElementById('barChart_detail_model'));
+
+    var Btn_Data_Refresh = document.getElementById('btn_data_refresh');
 
     function renderColor() {
         return "#"+(Math.random()*0xffffff<<0).toString(16);
     }
-
+    /**
+     * itemSets: main dataSet for FI
+     * item structure: {items: String, support: double, id<assigned when required>: int}
+     * item example: {items: "[防风]", support: 0.88234, id:5}
+     * @type {*[]}
+     */
     var itemSets=[];
+
+    /**
+     * FrequentModels: main dataSet for FM
+     * item structure<corresponding to DTO>: {source: String, target: String, confidence: double, lift: double}
+     * item example: {source: "[防风]", target: ["黄岑"], confidence: 0.3211355, lift: 1.54223}
+     * @type {*[]}
+     */
     var FrequentModels=[];
 
     var idPool=0;
 
     //get frequent item set information
     $.ajax({
-        url: "/data/testfp",
+        url: "/data/fpMain",
         type: "GET",
         dataType: "json",
+        data: {
+        },
         success: function (data) {
-            idPool=0;
-            var items = data.itemSets;
-            var models = data.models;
-            for (var i in items) {
-                var item={};
-                item.items = items[i].items;
-                item.support = items[i].support;
-                item.id = idPool++;
-                itemSets.push(item);
-            }
-            console.log(itemSets);
-            for (var i in models) {
-               FrequentModels.push(models[i]);
-               // console.log(renderColor());
-               // if (itemSets[data[i].source] == null) {
-               //     itemSets[data[i].source] = renderColor();
-               // }
-               // if (itemSets[data[i].target] == null) {
-               //     itemSets[data[i].target] = renderColor();
-               // }
-            }
-            renderRelationshipChart();
+            basicDataFill(data);
         }
     })
 
+    Btn_Data_Refresh.onclick = function () {
+        var minSupport = document.getElementById('minSupport').value;
+        var minConfidence = document.getElementById('minConfidence').value;
+        $.ajax({
+            url: "/data/fpMainUser",
+            type: "GET",
+            dataType: "json",
+            data: {
+                minSupport: minSupport,
+                minConfidence: minConfidence,
+            },
+            success: function (data) {
+                basicDataFill(data);
+            }
+        })
+    }
+
+    function basicDataFill(data) {
+        idPool=0;
+        itemSets=[];
+        FrequentModels=[];
+
+        var items = data.itemSets;
+        var models = data.models;
+        for (var i in items) {
+            var item={};
+            item.items = items[i].items;
+            item.support = items[i].support;
+            item.id = idPool++;
+            itemSets.push(item);
+        }
+        console.log(itemSets);
+        for (var i in models) {
+            FrequentModels.push(models[i]);
+            // console.log(renderColor());
+            // if (itemSets[data[i].source] == null) {
+            //     itemSets[data[i].source] = renderColor();
+            // }
+            // if (itemSets[data[i].target] == null) {
+            //     itemSets[data[i].target] = renderColor();
+            // }
+        }
+        console.log(FrequentModels);
+        renderRelationshipChart();
+        // renderInit();
+    }
+
     function renderRelationshipChart() {
+
+        GraphChart_Main.clear();
 
         nodes = []
         links = []
@@ -133,75 +188,81 @@
         }
 
         GraphChart_Main.setOption(option);
+        GraphChart_Main.on('click', function (params) {
+            if (params.dataType == 'node') {
+                coreNode = params.data.name;
+                detail = {};
+                detail["nodeName"] = coreNode;
+                detail["dimension"] = ['models', 'confidence'];
+                detail["dataSet"] = [];
+                detail.dataSet.push(detail.dimension);
+                for (var i in FrequentModels) {
+                    if (FrequentModels[i].source == coreNode || FrequentModels[i].target == coreNode) {
+                        data = [];
+                        data.push(FrequentModels[i].source + '=>' + FrequentModels[i].target);
+                        data.push(FrequentModels[i].confidence);
+                        detail.dataSet.push(data);
+                    }
+                }
+                console.log(detail);
+                renderDetailModels(detail);
+            }
+        })
     }
 
-    function renderSubChart() {
+    function renderInit() {
+        BarChart_Details_Model.setOption({
+            xAxis: {
+                type: 'category',
+                data: ['Frequent Models']
+            },
+            yAxis: {
+                type: 'value',
+            },
+            series: [{
+                type: 'bar'
+            }]
+        })
+    }
 
-        var itemSetList = [];
-        var chartData = [];
-
-        for (var s in itemSets) {
-            itemSetList.push(
-                {
-                    name: s,
-                    itemStyle: {
-                        color: itemSets[s],
-                    }
-                }
-            )
-        }
-
-        for (var i = 0; i < FrequentModels.length; i++) {
-            var linkcolor = new echarts.graphic.LinearGradient(0, 0, 1, 0, [{
-                    offset: 0,
-                    color: itemSets[FrequentModels[i].source]
-                }, {
-                    offset: 1,
-                    color: itemSets[FrequentModels[i].target]
-                }]
-            )
-            chartData.push(
-                {
-                    source: FrequentModels[i].source,
-                    target: FrequentModels[i].target,
-                    value: FrequentModels[i].confidence,
-                    lineStyle: {
-                        color: linkcolor
-                    }
-                }
-            )
-        }
-
+    function renderDetailModels(params) {
+        BarChart_Details_Model.setOption({});
         option = {
             title: {
-                text: '桑基图之城市移民人口统计',
-                subtext: 'powered by echart',
-                left: '5%',
+                text: "相关频繁模式",
+                subtext: "display for: " + params.nodeName,
+            },
+            dataset: [{
+                source: params.dataSet,
+            },{
+                transform: {
+                    type: 'sort',
+                    config: {
+                        dimension: 'confidence',
+                        order: 'desc',
+                    },
+                }
+            }],
+            xAxis: {
+                type: 'category',
+                show: false,
+            },
+            yAxis: {
+            },
+            series: {
+                type: 'bar',
+                encode: {
+                    x: 'models',
+                    y: 'confidence',
+                },
+                datasetIndex: 1,
             },
             tooltip: {
-                trigger: 'item',
-                triggerOn: 'mousemove'
-            },
-            series: [
-                {
-                    type: 'sankey',
-                    top: 50,
-                    data: itemSetList,
-                    links: chartData,
-                    focusNodeAdjacency: 'allEdges',
-                    itemStyle: {
-                        borderWidth: 1,
-                        color: '#1b6199',
-                        borderColor: '#ffffff'
-                    },
-                    lineStyle: {
-                        curveness: 0.5,
-                        opacity: 0.5
-                    }
-                }
-            ]
+                trigger: 'item'
+            }
         }
-        SankeyChart_Lift.setOption(option);
+
+        BarChart_Details_Model.setOption(option);
     }
 
 </script>

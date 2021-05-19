@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.lbh</groupId>
     <artifactId>dp-dfim</artifactId>
-    <version>0.0.1</version>
+    <version>0.1.0</version>
     <name>DP-DFIM</name>
     <description>Graduational Design</description>
     <properties>
@@ -22,6 +22,8 @@
         <slf4j.version>1.7.30</slf4j.version>
     </properties>
     <dependencies>
+
+        <!-- develop framework -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -36,7 +38,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -119,6 +120,7 @@
             <version>${slf4j.version}</version>
         </dependency>
 
+        <!-- dp google lib -->
 
     </dependencies>
 
