@@ -10,8 +10,7 @@ import java.util.List;
 @Slf4j
 public class DP {
 
-    Double mu;
-    Double beta;
+    Double epsilon = Math.log(3);
 
     public static void test(String[] args) {
         int count = 766;
@@ -25,8 +24,9 @@ public class DP {
         }
     }
 
-    public List<Double> addNoise() {
-        return null;
+    public double LaplaceNoise(double sensitivity) {
+        LaplaceDistribution ld = new LaplaceDistribution(0, sensitivity/epsilon);
+        return ld.sample();
     }
 
 }

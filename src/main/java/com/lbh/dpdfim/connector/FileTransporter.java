@@ -37,7 +37,7 @@ public class FileTransporter {
 
     public static void fileToHDFS(File file) throws IOException, URISyntaxException {
         FileSystem fs = HDFSOperator.getFileSystem();
-        fs.copyFromLocalFile(true, new Path(file.getAbsolutePath()), new Path(PathParser.generateRemoteDataDir(GlobalConfig.PERSISTENCE_STATUS) + "/" + file.getName()));
+        fs.copyFromLocalFile(true, new Path(file.getAbsolutePath()), new Path(PathParser.generateFSPath(PathParser.generateRemoteDataDir(GlobalConfig.PERSISTENCE_STATUS) + "/" + file.getName())));
         log.info("[Copy]" + file.getName() + ": to HDFS DataDir ...Success!");
     }
 

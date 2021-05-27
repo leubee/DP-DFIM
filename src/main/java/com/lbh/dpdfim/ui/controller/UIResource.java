@@ -10,16 +10,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Controller
-@RequestMapping("/ui")
 @Slf4j
 public class UIResource {
-    @RequestMapping("/index")
-    public String index(Model model) {
+    @RequestMapping("/")
+    public String index(Model model) throws IOException, URISyntaxException {
+        List<String> fileList = HDFSOperator.fileList(PathParser.generateRemoteDataDir(GlobalConfig.PERSISTENCE_STATUS));
+        log.info("[Data]File List:" + fileList.toString());
+        model.addAttribute("fileList", fileList);
         return "index";
     }
 

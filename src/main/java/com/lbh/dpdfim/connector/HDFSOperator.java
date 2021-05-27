@@ -28,7 +28,7 @@ public class HDFSOperator {
 
     public static void copyFromLocal(String local, String dst) throws IOException, URISyntaxException {
         FileSystem fs = getFileSystem();
-        fs.copyFromLocalFile(new Path(PathParser.generateLocalPath(local)), new Path(PathParser.generateFSPath(dst)));
+        fs.copyFromLocalFile(true, new Path(PathParser.generateLocalPath(local)), new Path(PathParser.generateFSPath(dst)));
         log.info("[copy]From: " + local + " To: " + PathParser.REMOTE_HOME_DIR + dst + " ...Success!");
         fs.close();
     }

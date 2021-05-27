@@ -11,32 +11,32 @@ public class FrequentItemSetDTOGenerator {
 
         FrequentItemSetDTO a = new FrequentItemSetDTO();
         a.setItems("a-source");
-        a.setSupport(0.8813103);
+        a.setSupport(3124L);
         res.add(a);
 
         FrequentItemSetDTO b = new FrequentItemSetDTO();
         b.setItems("a-target");
-        b.setSupport(0.8213411);
+        b.setSupport(1133L);
         res.add(b);
 
         FrequentItemSetDTO c = new FrequentItemSetDTO();
         c.setItems("b-source");
-        c.setSupport(0.9100382);
+        c.setSupport(2001L);
         res.add(c);
 
         FrequentItemSetDTO d = new FrequentItemSetDTO();
         d.setItems("b-target");
-        d.setSupport(0.8910132);
+        d.setSupport(999L);
         res.add(d);
 
         FrequentItemSetDTO e = new FrequentItemSetDTO();
         e.setItems("c-source");
-        e.setSupport(0.9100382);
+        e.setSupport(1233L);
         res.add(e);
 
         FrequentItemSetDTO f = new FrequentItemSetDTO();
         f.setItems("c-target");
-        f.setSupport(0.7913382);
+        f.setSupport(1312L);
         res.add(f);
 
         return res;

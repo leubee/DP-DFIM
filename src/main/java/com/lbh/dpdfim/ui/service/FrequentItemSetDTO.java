@@ -7,6 +7,6 @@ public class FrequentItemSetDTO {
 
     private String items;
 
-    private double support;
+    private Long support;
 
 }
