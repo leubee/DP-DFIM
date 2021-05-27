@@ -13,9 +13,13 @@ public class PathParser {
 
     public static final String LOCAL_JAR_PATH = "E:/Projects/NJUCM/DP-DFIM/target";
 
-    public static final String REMOTE_HOME_DIR = "/usr/spark/tmp";
+    public static final String REMOTE_HOME_DIR = "/usr/spark";
 
-    public static String generateClusterPath(String path) {
+    public static final String REMOTE_REPOSITORY = "/data";
+
+    public static final String TMP_DIR = "/tmp";
+
+    public static String generateFSPath(String path) {
         return PathParser.REMOTE_HOME_DIR + path;
     }
 
@@ -27,5 +31,8 @@ public class PathParser {
         return PathParser.LOCAL_RESOURCES_ROOT + path;
     }
 
+    public static String generateRemoteDataDir(boolean persistence) {
+        return  REMOTE_REPOSITORY + (persistence ? "" : TMP_DIR);
+    }
 
 }

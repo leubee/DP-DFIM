@@ -1,10 +1,12 @@
 package com.lbh.dpdfim.core;
 
-import com.lbh.dpdfim.connector.FileOperator;
+import com.lbh.dpdfim.config.GlobalConfig;
+import com.lbh.dpdfim.connector.HDFSOperator;
 import com.lbh.dpdfim.connector.PathParser;
 import com.lbh.dpdfim.ui.service.FrequentItemSetDTO;
 import com.lbh.dpdfim.ui.service.FrequentModelDTO;
 import lombok.Data;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
@@ -30,8 +32,12 @@ public class FP {
     int numPartition = 10;
     double minConfidence = 0.85;
 
+    String chosenFile = "asthma.csv";
+    String dataPath = PathParser.REMOTE_REPOSITORY;
+
     public FP() {}
-    public FP(double minSupport, double minConfidence, int numPartition) {
+    public FP(double minSupport, double minConfidence, int numPartition) throws IOException, URISyntaxException {
+        Initializer.FSInit();
         this.minConfidence = minConfidence;
         this.minSupport = minSupport;
         this.numPartition = numPartition;
@@ -45,10 +51,10 @@ public class FP {
                 .setJars(new String[]{"target/dp-dfim-0.0.1.jar.original"});
         JavaSparkContext context = new JavaSparkContext(conf);
 
-        FileOperator.copyFromLocal("/spark/asthma.csv", "/fq/asthma.csv");
+//        HDFSOperator.copyFromLocal("/spark/asthma.csv", "/data/asthma.csv");
 
-        //读取本地数据集，每一行为一个项集List<>，每个项集按项分割
-        JavaRDD<List<String>> trans = context.textFile(PathParser.generateRemotePath("/fq/asthma.csv"))
+        //读取数据集
+        JavaRDD<List<String>> trans = context.textFile(PathParser.generateRemotePath(inFilePath()))
                 .map(s -> Arrays.stream(s.replace(","," ").trim().split(" ")).distinct().collect(Collectors.toList()));
         long counts = trans.count();
         log.info("记录条数：" + counts);
@@ -56,8 +62,8 @@ public class FP {
         FPGrowth fpGrowth = new FPGrowth().setMinSupport(this.getMinSupport()).setNumPartitions(this.getNumPartition());
         FPGrowthModel<String> model = fpGrowth.run(trans);
 
-        FileOperator.delete("/fq/out");
-        model.freqItemsets().saveAsTextFile(PathParser.generateRemotePath("/fq/out"));
+        HDFSOperator.delete(outFilePath());
+        model.freqItemsets().saveAsTextFile(PathParser.generateRemotePath(outFilePath()));
 
         List<FrequentItemSetDTO> itemSets = new ArrayList<>();
         List<FrequentModelDTO> models = new ArrayList<>();
@@ -89,4 +95,13 @@ public class FP {
 
         return result;
     }
+
+    String inFilePath() {
+        return PathParser.generateRemoteDataDir(GlobalConfig.PERSISTENCE_STATUS) + "/" + chosenFile;
+    }
+
+    String outFilePath() {
+        return PathParser.generateRemoteDataDir(GlobalConfig.PERSISTENCE_STATUS)+ "/out/" + chosenFile.substring(0, chosenFile.indexOf('.'));
+    }
+
 }

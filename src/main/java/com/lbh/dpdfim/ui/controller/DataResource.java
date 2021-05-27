@@ -1,18 +1,19 @@
 package com.lbh.dpdfim.ui.controller;
 
+import com.lbh.dpdfim.connector.FileTransporter;
 import com.lbh.dpdfim.core.FP;
 import com.lbh.dpdfim.ui.service.UserControlParamDTO;
 import com.lbh.dpdfim.ui.utils.FrequentItemSetDTOGenerator;
 import com.lbh.dpdfim.ui.utils.FrequentModelDTOGenerator;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -36,6 +37,7 @@ public class DataResource {
             if (userParam.getMinSupport() != null) fp.setMinSupport(userParam.getMinSupport());
             if (userParam.getNumPartitions() != null) fp.setNumPartition(userParam.getNumPartitions());
         }
+        fp.setChosenFile(userParam.getUserFile());
         log.info("Parallel FP Module successfully created. minConfidence: " + fp.getMinConfidence() + ";minSupport: " + fp.getMinSupport() + ";Num of partition: " + fp.getNumPartition());
         return fp.execute();
     }
@@ -47,5 +49,11 @@ public class DataResource {
         return fp.execute();
     }
 
+    @PostMapping("/upload")
+    public void saveFileToHDFS(@RequestParam("uploadFile") MultipartFile file) throws IOException, URISyntaxException {
+        File f = FileTransporter.MultipartFileToFile(file);
+        FileTransporter.fileToHDFS(f);
+        log.info("success save: " + f.getName());
+    }
 
 }

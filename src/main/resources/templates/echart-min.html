@@ -9,6 +9,28 @@
     <title>Title</title>
 </head>
 <body>
+    <div style="height: 400px; width: 100%">
+        <div style="height: 200px;">
+            <form id="fileUploadForm" action="/data/upload" method="post" enctype="multipart/form-data" target="tgFrame">
+                <input name="uploadFile" accept="*/*" type="file">
+                <input type="button" value="Upload" onclick="fileUploadSubmit()">
+            </form>
+            <iframe id="tgFrame" name="tgFrame" src="about:blank" style="display: none"></iframe>
+        </div>
+        <div style="height: 200px">
+            <form>
+                <label>选择源文件:</label><br/>
+                <select id="fileSelector" name="fileSelector">
+                    <option th:each="file:${fileList}"
+                            th:text="${file}"
+                            th:selected="${file}"
+                            th:name="${file}"></option>
+                </select>
+                <input type="button" value="Execute" onclick="changeFile()">
+            </form>
+        </div>
+    </div>
+
     <div style="height: 960px; width: 100%" >
         <div id="graphChart_main" class="mainChart" style="height: 100%; width: 80%; float: left"></div>
         <div id="paramSet_graph" class="paramSet_graph" style="height: 100%; width: 20%; float: left">
@@ -54,6 +76,8 @@
 
     var idPool=0;
 
+    var targetFile;
+
     //get frequent item set information
     $.ajax({
         url: "/data/fpMain",
@@ -63,10 +87,13 @@
         },
         success: function (data) {
             basicDataFill(data);
+            targetFile = "asthma.csv"
         }
     })
 
-    Btn_Data_Refresh.onclick = function () {
+    Btn_Data_Refresh.onclick = dataReload;
+
+    function dataReload() {
         var minSupport = document.getElementById('minSupport').value;
         var minConfidence = document.getElementById('minConfidence').value;
         $.ajax({
@@ -76,6 +103,7 @@
             data: {
                 minSupport: minSupport,
                 minConfidence: minConfidence,
+                userFile: targetFile,
             },
             success: function (data) {
                 basicDataFill(data);
@@ -263,6 +291,17 @@
         }
 
         BarChart_Details_Model.setOption(option);
+    }
+
+    function fileUploadSubmit() {
+        $('fileUploadForm').submit();
+        alert('上传成功！');
+        location.reload();
+    }
+
+    function changeFile() {
+        targetFile = $('fileSelector').value;
+        dataReload();
     }
 
 </script>

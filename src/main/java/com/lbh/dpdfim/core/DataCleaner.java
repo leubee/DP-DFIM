@@ -1,5 +1,6 @@
 package com.lbh.dpdfim.core;
 
+import com.lbh.dpdfim.config.GlobalConfig;
 import com.lbh.dpdfim.connector.PathParser;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;

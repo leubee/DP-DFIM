@@ -13,4 +13,6 @@ public class UserControlParamDTO {
     private Integer numPartitions;
 
     private Boolean differentialPrivacy;
+
+    private String userFile;
 }
